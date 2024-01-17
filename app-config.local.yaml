@@ -1,0 +1,107 @@
+# Backstage override configuration for your local development environment
+# Sachin: using github for demo purposes (for Org would be there Active Directory)
+# https://backstage.io/docs/auth/
+auth:
+  environment: development
+  providers:
+    github:
+      development:
+        clientId: ${BS_AUTH_PROVIDER_CLIENT_ID}
+        clientSecret: ${BS_AUTH_PROVIDER_CLIENT_SECRET}
+        ## uncomment if using GitHub Enterprise
+        # enterpriseInstanceUrl: ${BS_AUTH_PROVIDER_INSTANCE_URL}
+
+backend:
+  database:
+    # Sachin: Uncomment to check db related caching issues
+    client: better-sqlite3
+    connection: ':memory:'
+    # config options: https://node-postgres.com/apis/client
+    # client: pg
+    # connection:
+    #   host: 127.0.0.1
+    #   port: 5432
+    #   user: postgres
+    #   password: postgres
+    # https://node-postgres.com/features/ssl
+    # ssl: require # see https://www.postgresql.org/docs/current/libpq-ssl.html Table 33.1. SSL Mode Descriptions (e.g. require)
+    #ca: # if you have a CA file and want to verify it you can uncomment this section
+    #$file: <file-path>/ca/server.crt
+  reading:
+    allow:
+      - host: api.apis.guru
+      - host: petstore3.swagger.io
+
+# https://backstage.io/docs/features/software-catalog/configuration
+catalog:
+  # Overrides the default list locations from app-config.yaml as these contain example data.
+  # See https://backstage.io/docs/features/software-catalog/#adding-components-to-the-catalog for more details
+  # on how to get entities into the catalog.
+  locations:
+    # Example Data
+    - type: url
+      target: https://github.com/backstage/backstage/blob/master/packages/catalog-model/examples/all.yaml
+    # Local Catalog testing, you should have checked out backstage-catalog project
+    - type: file
+      target: ../../../backstage-catalog/catalog-info.yaml
+
+  # https://backstage.io/docs/features/software-catalog/external-integrations/#installing-the-provider
+  # Check catalog.ts
+  providers:
+    github:
+      orgCatalogProvider:
+        organization: 'Org' # string
+        catalogPath: '/catalog-info.yaml' # string
+        filters:
+          branch: 'main' # string
+          repository: '.*' # Regex
+        # Task Schedule Defined at catalog.ts
+        validateLocationsExist: true # optional boolean
+
+  # We maintain a pristine catalog at source control, those orphaned must be deleted by entity owners and should no longer be available for use
+  orphanStrategy: delete
+
+# https://backstage.io/docs/integrations/
+integrations:
+  github:
+    - host: ${ORG_GITHUB_HOST}
+      apps:
+        - $include: ${BS_INTEGRATION_ORG_GITHUB_APP_CREDENTIALS}
+
+# Integrates GitHub Events to trigger backstage event topics which trigger updates at backstage backend (see below link)
+# https://backstage.io/docs/integrations/github/discovery/#installation-with-events-support
+events:
+  http:
+    topics:
+      - github
+  modules:
+    github:
+      webhookSecret: ${BS_CATALOG_PROVIDER_WEBHOOK_SECRET}
+
+# OPTIONAL : If you have components with kubernetes annotations in its catalog descriptor
+# https://backstage.io/docs/features/kubernetes/
+# kubernetes:
+#   serviceLocatorMethod:
+#     type: 'multiTenant'
+#   clusterLocatorMethods:
+#     - type: 'config'
+#       clusters:
+#         - url: ${BS_K8S_MINIKUBE_URL}
+#           name: minikube
+#           authProvider: 'serviceAccount'
+#           skipTLSVerify: true
+#           skipMetricsLookup: false
+#           serviceAccountToken: ${BS_K8S_MINIKUBE_TOKEN}
+#           dashboardUrl: ${BS_K8S_DASHBOARD_URL}
+#           dashboardApp: standard
+
+# https://github.com/backstage/backstage/blob/master/plugins/devtools/README.md
+devTools:
+  externalDependencies:
+    endpoints:
+      - name: 'GitHub'
+        type: 'fetch'
+        target: 'https://${ORG_GITHUB_HOST}'
+      - name: 'MiniKube Dashboard'
+        type: 'fetch'
+        target: '${BS_K8S_DASHBOARD_URL}'

@@ -1,0 +1,15 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: backstage
+  description: This Backstage Application customized for Org
+  annotations:
+     github.com/project-slug: backstage
+     # backstage.io/techdocs-ref: url:https://github.com/backstage/backstage exhaustive render and it fails most of the time
+  tags: 
+    - dev-tool
+spec:
+  type: website
+  system: devX
+  owner: org/team
+  lifecycle: production

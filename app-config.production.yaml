@@ -1,0 +1,108 @@
+app:
+  # Should be the same as backend.baseUrl when using the `app-backend` plugin.
+  baseUrl: https://${CUSTOM_DOMAIN}
+
+auth:
+  environment: production
+  providers:
+    github:
+      production:
+        clientId: ${AUTH_GITHUB_CLIENT_ID}
+        clientSecret: ${AUTH_GITHUB_CLIENT_SECRET}
+        ## uncomment if using GitHub Enterprise
+        # enterpriseInstanceUrl: ${AUTH_GITHUB_ENTERPRISE_INSTANCE_URL}
+
+backend:
+  # Note that the baseUrl should be the URL that the browser and other clients
+  # should use when communicating with the backend, i.e. it needs to be
+  # reachable not just from within the backend host, but from all of your
+  # callers. When its value is "http://localhost:7007", it's strictly private
+  # and can't be reached by others.
+  baseUrl: https://${CUSTOM_DOMAIN}
+  # The listener can also be expressed as a single <host>:<port> string. In this case we bind to
+  # all interfaces, the most permissive setting. The right value depends on your specific deployment.
+  listen: ':7007'
+  csp:
+    connect-src: ["'self'", 'http:', 'https:']
+    img-src: ["'self'", 'data:', 'https://avatars.githubusercontent.com']
+  cors:
+    origin: https://${CUSTOM_DOMAIN}
+
+  # config options: https://node-postgres.com/api/client
+  database:
+    # Sachin: Uncomment to check db related caching issues
+    client: better-sqlite3
+    connection: ':memory:'
+    # config options: https://node-postgres.com/apis/client
+    # client: pg
+    # connection:
+    #   host: 127.0.0.1
+    #   port: 5432
+    #   user: postgres
+    #   password: postgres
+    # https://node-postgres.com/features/ssl
+    # ssl: require # see https://www.postgresql.org/docs/current/libpq-ssl.html Table 33.1. SSL Mode Descriptions (e.g. require)
+    #ca: # if you have a CA file and want to verify it you can uncomment this section
+    #$file: <file-path>/ca/server.crt
+  reading:
+    allow:
+      - host: api.apis.guru
+      - host: petstore3.swagger.io
+
+catalog:
+  # Overrides the default list locations from app-config.yaml as these contain example data.
+  # See https://backstage.io/docs/features/software-catalog/#adding-components-to-the-catalog for more details
+  # on how to get entities into the catalog.
+  locations:
+    - type: url
+      target: https://github.com/backstage/backstage/blob/master/packages/catalog-model/examples/all.yaml
+    # Local example organizational data
+    #   rules:
+    #     - allow: [User, Group]
+
+  providers:
+    github:
+      orgCatalogProvider:
+        organization: 'Org' # string
+        catalogPath: '/catalog-info.yaml' # string
+        filters:
+          branch: 'main' # string
+          repository: '.*' # Regex
+        # Task Schedule Defined at catalog.ts
+        validateLocationsExist: true # optional boolean
+
+  # We maintain a pristine catalog at source control, those orphaned must be deleted by entity owners and should no longer be available for use
+  orphanStrategy: delete
+
+integrations:
+  github:
+    - host: github.com
+      token: ${GITHUB_INTEGRATION_PERSONAL_TOKEN}
+
+events:
+  http:
+    topics:
+      - github
+  modules:
+    github:
+      webhookSecret: ${GITHUB_WEBHOOK_SECRET}
+
+kubernetes:
+  serviceLocatorMethod:
+    type: 'multiTenant'
+  clusterLocatorMethods:
+    - type: 'catalog'
+
+devTools:
+  externalDependencies:
+    endpoints:
+      - name: 'GitHub'
+        type: 'fetch'
+        target: 'https://github.com'
+
+techdocs:
+  builder: 'local' # Alternatives - 'external'
+  generator:
+    runIn: 'local' # Alternatives - 'local'
+  publisher:
+    type: 'local' # Alternatives - 'googleGcs' or 'awsS3'. Read documentation for using alternatives.
